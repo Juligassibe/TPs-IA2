@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Tuple, Dict, Optional
 
+
 class Almacen:
     def __init__(self):
         self.filas = 11
@@ -328,4 +329,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
