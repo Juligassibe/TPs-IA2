@@ -18,8 +18,15 @@ class Control:
         self.posicion['PP'] = fuzz.trimf(self.posicion.universe, np.array([5 * np.pi / 180, 17.5 * np.pi / 180, 30 * np.pi / 180]))
         self.posicion['PG'] = fuzz.smf(self.posicion.universe, 20 * np.pi / 180, 45 * np.pi / 180)
 
+        self.velocidad['NG'] = fuzz.zmf(self.velocidad.universe, -2.5, -1.5)
+        self.velocidad['NP'] = fuzz.trimf(self.velocidad.universe, np.array([-2, -1.25, -0.5]))
+        self.velocidad['Z'] = fuzz.trimf(self.velocidad.universe, np.array([-1, 0, 1]))
+        self.velocidad['PP'] = fuzz.trimf(self.velocidad.universe, np.array([0.5, 1.25, 2]))
+        self.velocidad['PG'] = fuzz.smf(self.velocidad.universe, 1.5, 2.5)
+
     def ver_conjuntos_borrosos(self):
         self.posicion.view()
+        self.velocidad.view()
         plt.show()
 
 
