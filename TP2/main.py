@@ -7,17 +7,21 @@ import threading
 
 class Control:
     def __init__(self):
+        pos_max = np.pi
+        vel_max = 3
+        f_max = 100
+
         # Variables linguisticas
-        self.posicion = ctrl.Antecedent(np.linspace(-np.pi, np.pi, 10000), 'posicion')
-        self.velocidad = ctrl.Antecedent(np.linspace(-3, 3, 10000), 'velocidad')
-        self.fuerza = ctrl.Consequent(np.linspace(-10, 10, 10000), 'fuerza')
+        self.posicion = ctrl.Antecedent(np.linspace(-pos_max, pos_max, 1000), 'posicion')
+        self.velocidad = ctrl.Antecedent(np.linspace(-vel_max, vel_max, 1000), 'velocidad')
+        self.fuerza = ctrl.Consequent(np.linspace(-f_max, f_max, 1000), 'fuerza')
 
         # Definicion de conjuntos borrosos
-        self.posicion['NG'] = fuzz.zmf(self.posicion.universe, -45 * np.pi / 180, -20*np.pi/180)
-        self.posicion['NP'] = fuzz.trimf(self.posicion.universe, np.array([-30 * np.pi / 180, -17.5 * np.pi / 180, -5 * np.pi / 180]))
-        self.posicion['Z'] = fuzz.trimf(self.posicion.universe, np.array([-10 * np.pi / 180, 0, 10 * np.pi / 180]))
-        self.posicion['PP'] = fuzz.trimf(self.posicion.universe, np.array([5 * np.pi / 180, 17.5 * np.pi / 180, 30 * np.pi / 180]))
-        self.posicion['PG'] = fuzz.smf(self.posicion.universe, 20 * np.pi / 180, 45 * np.pi / 180)
+        self.posicion['NG'] = fuzz.zmf(self.posicion.universe, -30 * np.pi / 180, -10 * np.pi / 180)
+        self.posicion['NP'] = fuzz.trimf(self.posicion.universe, np.array([-20 * np.pi / 180, -11 * np.pi / 180, -1 * np.pi / 180]))
+        self.posicion['Z'] = fuzz.trimf(self.posicion.universe, np.array([-2 * np.pi / 180, 0, 2 * np.pi / 180]))
+        self.posicion['PP'] = fuzz.trimf(self.posicion.universe, np.array([1 * np.pi / 180, 11 * np.pi / 180, 20 * np.pi / 180]))
+        self.posicion['PG'] = fuzz.smf(self.posicion.universe, 10 * np.pi / 180, 30 * np.pi / 180)
 
         self.velocidad['NG'] = fuzz.zmf(self.velocidad.universe, -2.5, -1.5)
         self.velocidad['NP'] = fuzz.trimf(self.velocidad.universe, np.array([-2, -1.25, -0.5]))
@@ -25,22 +29,22 @@ class Control:
         self.velocidad['PP'] = fuzz.trimf(self.velocidad.universe, np.array([0.5, 1.25, 2]))
         self.velocidad['PG'] = fuzz.smf(self.velocidad.universe, 1.5, 2.5)
 
-        self.fuerza['NG'] = fuzz.zmf(self.fuerza.universe, -4, -2.5)
-        self.fuerza['NP'] = fuzz.trimf(self.fuerza.universe, np.array([-3, -1.75, -0.5]))
-        self.fuerza['Z'] = fuzz.trimf(self.fuerza.universe, np.array([-1, 0, 1]))
-        self.fuerza['PP'] = fuzz.trimf(self.fuerza.universe, np.array([0.5, 1.75, 3]))
-        self.fuerza['PG'] = fuzz.smf(self.fuerza.universe, 2.5, 4)
+        self.fuerza['NG'] = fuzz.zmf(self.fuerza.universe, -50, -20)
+        self.fuerza['NP'] = fuzz.trimf(self.fuerza.universe, np.array([-30, -17.5, -5]))
+        self.fuerza['Z'] = fuzz.trimf(self.fuerza.universe, np.array([-10, 0, 10]))
+        self.fuerza['PP'] = fuzz.trimf(self.fuerza.universe, np.array([5, 17.5, 30]))
+        self.fuerza['PG'] = fuzz.smf(self.fuerza.universe, 20, 50)
 
         # Base de conocimiento
         etiquetas = ['NG', 'NP', 'Z', 'PP', 'PG']
 
         # Matriz de salida (fuerza) como lista de listas (posición x velocidad)
         matriz_fuerza = [
-            ['PG', 'PG', 'PP', 'PG', 'PG'],
-            ['PG', 'PP', 'PP', 'PP', 'PG'],
-            ['PG', 'PP', 'Z', 'NP', 'NG'],
-            ['NG', 'NP', 'NP', 'NP', 'NG'],
-            ['NG', 'NG', 'NG', 'NG', 'NG']
+            ['PG', 'PG', 'PG', 'PG', 'Z'],
+            ['PG', 'PG', 'PP', 'Z', 'Z'],
+            ['PP', 'Z', 'Z', 'Z', 'NP'],
+            ['Z', 'Z', 'NP', 'NG', 'NG'],
+            ['Z', 'NP', 'NG', 'NG', 'NG']
         ]
 
         self.reglas = []
@@ -74,8 +78,8 @@ class Control:
 class Carro:
     def __init__(self):
         # Definir posición y velocidad inicial
-        self.posicion = -0.1
-        self.velocidad = 0.5
+        self.posicion = -1
+        self.velocidad = -1.5
         self.aceleracion = 0
 
         # Masa carro y pendulo
@@ -89,13 +93,13 @@ class Carro:
         self.dt = 0.01
 
     def calc_aceleracion(self, fuerza):
-        self.aceleracion = (9.81 * np.sin(self.posicion) + np.cos(self.posicion) * ((-fuerza - self.m * self.l * self.velocidad**2 * np.sin(self.posicion))/(self.M + self.m))) / (self.l * ((4/3) - (self.m * np.cos(self.posicion)**2) / (self.M + self.m)))
+        self.aceleracion = (9.81 * np.sin(self.posicion) + np.cos(self.posicion) * ((-fuerza - self.m * self.l * self.velocidad**2 * np.sin(self.posicion)) / (self.M + self.m))) / (self.l * ((4/3) - (self.m * (np.cos(self.posicion))**2) / (self.M + self.m)))
 
     def calc_velocidad(self):
         self.velocidad = self.velocidad + self.aceleracion * self.dt
 
     def calc_posicion(self):
-        self.posicion = self.posicion + self.velocidad * self.dt + 0.5 * self.aceleracion * self.dt**2
+        self.posicion = self.posicion + self.velocidad * self.dt + 0.5 * self.aceleracion * (self.dt)**2
 
     def simular(self, fuerza):
         self.calc_aceleracion(fuerza)
@@ -114,7 +118,6 @@ class Simulador:
 
     def thread_fisico(self):
         self.carro.simular(self.fuerza)
-        #print(f"Fisico: {time.time()}")
 
     def thread_control(self):
         posicion = self.carro.posicion
@@ -122,7 +125,6 @@ class Simulador:
         velocidad = self.carro.velocidad
         self.velocidades.append(velocidad)
         self.fuerza = self.control.calcular(posicion, velocidad)
-        #print(f"Control: {time.time()}")
 
     def run(self, tiempo_simulacion=10):
         for tiempo in range(0, int(tiempo_simulacion / self.carro.dt)):
