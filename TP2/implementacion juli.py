@@ -33,6 +33,16 @@ class Control:
         self.fuerza['PP'] = fuzz.trimf(self.fuerza.universe, np.array([3, 14, 25]))
         self.fuerza['PG'] = fuzz.smf(self.fuerza.universe, 15, 50)
 
+        #self.fuerza.defuzzify_method = 'centroid'
+        # Por media del valor maximo
+        #self.fuerza.defuzzify_method = 'mom'
+        # Por absisa minima del valor maximo
+        #self.fuerza.defuzzify_method = 'som'
+        # Por absisa maxima del valor maximo
+        #self.fuerza.defuzzify_method = 'lom'
+        # Por punto que divide el area en 2 partes iguales
+        self.fuerza.defuzzify_method = 'bisector'
+
         # Base de conocimiento
         etiquetas = ['NG', 'NP', 'Z', 'PP', 'PG']
 

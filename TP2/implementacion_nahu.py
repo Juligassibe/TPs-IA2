@@ -24,7 +24,16 @@ fuerza_max = 200            # Newtons
 angulo = ctrl.Antecedent(np.linspace(-angulo_max, angulo_max, 1001), 'angulo')
 velocidad = ctrl.Antecedent(np.linspace(-velocidad_max, velocidad_max, 1001), 'velocidad')
 
-fuerza = ctrl.Consequent(np.linspace(-fuerza_max, fuerza_max, 1001), 'fuerza', defuzzify_method='centroid')
+fuerza = ctrl.Consequent(np.linspace(-fuerza_max, fuerza_max, 1001), 'fuerza')
+#fuerza.defuzzify_method = 'centroid'
+# Por media del valor maximo
+#fuerza.defuzzify_method = 'mom'
+# Por absisa minima del valor maximo
+#fuerza.defuzzify_method = 'som'
+# Por absisa maxima del valor maximo
+#fuerza.defuzzify_method = 'lom'
+# Por punto que divide el area en 2 partes iguales
+fuerza.defuzzify_method = 'bisector'
 
 # Función para definir los centros de las funciones de pertenencia
 def centros(maximo):
