@@ -2,24 +2,22 @@ import numpy as np
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 import matplotlib.pyplot as plt
-import time
-import threading
 
 class Control:
     def __init__(self):
         pos_max = np.pi
         vel_max = 3
-        f_max = 100
+        f_max = 50
 
         # Variables linguisticas
-        self.posicion = ctrl.Antecedent(np.linspace(-pos_max, pos_max, 1000), 'posicion')
-        self.velocidad = ctrl.Antecedent(np.linspace(-vel_max, vel_max, 1000), 'velocidad')
-        self.fuerza = ctrl.Consequent(np.linspace(-f_max, f_max, 1000), 'fuerza')
+        self.posicion = ctrl.Antecedent(np.linspace(-pos_max, pos_max, 10000), 'posicion')
+        self.velocidad = ctrl.Antecedent(np.linspace(-vel_max, vel_max, 10000), 'velocidad')
+        self.fuerza = ctrl.Consequent(np.linspace(-f_max, f_max, 10000), 'fuerza')
 
         # Definicion de conjuntos borrosos
         self.posicion['NG'] = fuzz.zmf(self.posicion.universe, -30 * np.pi / 180, -10 * np.pi / 180)
         self.posicion['NP'] = fuzz.trimf(self.posicion.universe, np.array([-20 * np.pi / 180, -11 * np.pi / 180, -1 * np.pi / 180]))
-        self.posicion['Z'] = fuzz.trimf(self.posicion.universe, np.array([-2 * np.pi / 180, 0, 2 * np.pi / 180]))
+        self.posicion['Z'] = fuzz.trimf(self.posicion.universe, np.array([-10 * np.pi / 180, 0, 10 * np.pi / 180]))
         self.posicion['PP'] = fuzz.trimf(self.posicion.universe, np.array([1 * np.pi / 180, 11 * np.pi / 180, 20 * np.pi / 180]))
         self.posicion['PG'] = fuzz.smf(self.posicion.universe, 10 * np.pi / 180, 30 * np.pi / 180)
 
@@ -29,11 +27,11 @@ class Control:
         self.velocidad['PP'] = fuzz.trimf(self.velocidad.universe, np.array([0.5, 1.25, 2]))
         self.velocidad['PG'] = fuzz.smf(self.velocidad.universe, 1.5, 2.5)
 
-        self.fuerza['NG'] = fuzz.zmf(self.fuerza.universe, -50, -20)
-        self.fuerza['NP'] = fuzz.trimf(self.fuerza.universe, np.array([-30, -17.5, -5]))
+        self.fuerza['NG'] = fuzz.zmf(self.fuerza.universe, -50, -15)
+        self.fuerza['NP'] = fuzz.trimf(self.fuerza.universe, np.array([-25, -14, -3]))
         self.fuerza['Z'] = fuzz.trimf(self.fuerza.universe, np.array([-10, 0, 10]))
-        self.fuerza['PP'] = fuzz.trimf(self.fuerza.universe, np.array([5, 17.5, 30]))
-        self.fuerza['PG'] = fuzz.smf(self.fuerza.universe, 20, 50)
+        self.fuerza['PP'] = fuzz.trimf(self.fuerza.universe, np.array([3, 14, 25]))
+        self.fuerza['PG'] = fuzz.smf(self.fuerza.universe, 15, 50)
 
         # Base de conocimiento
         etiquetas = ['NG', 'NP', 'Z', 'PP', 'PG']
@@ -41,9 +39,9 @@ class Control:
         # Matriz de salida (fuerza) como lista de listas (posición x velocidad)
         matriz_fuerza = [
             ['PG', 'PG', 'PG', 'PG', 'Z'],
-            ['PG', 'PG', 'PP', 'Z', 'Z'],
-            ['PP', 'Z', 'Z', 'Z', 'NP'],
-            ['Z', 'Z', 'NP', 'NG', 'NG'],
+            ['PG', 'PG', 'PP', 'Z', 'NP'],
+            ['PG', 'PP', 'Z', 'NP', 'NG'],
+            ['PG', 'Z', 'NP', 'NG', 'NG'],
             ['Z', 'NP', 'NG', 'NG', 'NG']
         ]
 
@@ -93,7 +91,7 @@ class Carro:
         self.dt = 0.01
 
     def calc_aceleracion(self, fuerza):
-        self.aceleracion = (9.81 * np.sin(self.posicion) + np.cos(self.posicion) * ((-fuerza - self.m * self.l * self.velocidad**2 * np.sin(self.posicion)) / (self.M + self.m))) / (self.l * ((4/3) - (self.m * (np.cos(self.posicion))**2) / (self.M + self.m)))
+        self.aceleracion = (9.81 * np.sin(self.posicion) + np.cos(self.posicion) * ((fuerza - self.m * self.l * self.velocidad**2 * np.sin(self.posicion)) / (self.M + self.m))) / (self.l * ((4/3) - (self.m * (np.cos(self.posicion))**2) / (self.M + self.m)))
 
     def calc_velocidad(self):
         self.velocidad = self.velocidad + self.aceleracion * self.dt
@@ -112,7 +110,6 @@ class Simulador:
         self.carro = Carro()
         self.fuerza = 0
         self.running = True
-        self.lock = threading.Lock()
         self.posiciones = []
         self.velocidades = []
 
@@ -143,6 +140,10 @@ class Simulador:
         plt.legend()
         plt.grid()
         plt.show()
+
+def debug():
+    control = Control()
+    control.ver_conjuntos_borrosos()
 
 def main():
     simulador = Simulador()
