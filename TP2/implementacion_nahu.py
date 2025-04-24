@@ -8,12 +8,12 @@ g = 9.81     # gravedad (m/s^2)
 l = 0.1      # longitud del péndulo (m)
 m = 0.1      # masa del péndulo (kg)
 M = 1.0      # masa del carro (kg)
-dt = 0.001   # paso de integración (s)
+dt = 0.01   # paso de integración (s)
 
 # Condición inicial para simulación
 theta = np.radians(30)   # rad
 theta_dot = -1.5            # rad/s
-tiempo_simulado = 1      # tiempo de simulación (s)
+tiempo_simulado = 5      # tiempo de simulación (s)
 
 # Máximos de universo en radianes y rad/s
 angulo_max = np.radians(90)  # rad (90°)
@@ -52,9 +52,9 @@ def generar_mfs(var, maximo, angosto_Z=False):
     var['PG'] = fuzz.trapmf(var.universe, [c[3], c[4], var.universe[-1], var.universe[-1]])  # Conjunto PG (Positive Big)
 
 # Generar funciones de pertenencia para ángulo, velocidad y fuerza
-generar_mfs(angulo, angulo_max, angosto_Z=0)  # Funciones de pertenencia para ángulo
-generar_mfs(velocidad, velocidad_max, angosto_Z=0)  # Funciones de pertenencia para velocidad
-generar_mfs(fuerza, fuerza_max, angosto_Z=0)  # Funciones de pertenencia para fuerza
+generar_mfs(angulo, angulo_max, angosto_Z=False)  # Funciones de pertenencia para ángulo
+generar_mfs(velocidad, velocidad_max, angosto_Z=False)  # Funciones de pertenencia para velocidad
+generar_mfs(fuerza, fuerza_max, angosto_Z=False)  # Funciones de pertenencia para fuerza
 
 # Reglas lógicas para control difuso del péndulo
 rules = [
@@ -127,7 +127,8 @@ plt.ylabel("Grado de pertenencia")
 plt.show()
 
 # Simulación
-tiempo, angulos, velocidades, fuerzas = [], [], [], []
+tiempo, angulos, velocidades, fuerzas = [0], [theta], [theta_dot], [0]
+x, v, a = [0.0], [0.0], 0.0
 
 # Proceso de simulación utilizando el modelo dinámico y las reglas definidas
 for t in np.arange(0, tiempo_simulado, dt):
@@ -145,10 +146,14 @@ for t in np.arange(0, tiempo_simulado, dt):
 
     # Actualización del modelo dinámico con la aceleración angular
     theta_ddot = (g * np.sin(theta) + np.cos(theta) * ((F - m * l * theta_dot**2 * np.sin(theta)) / (M + m))) / (l * (4/3 - (m * np.cos(theta)**2) / (M + m)))
+    a = (((4/3)*(F + m * l * theta_dot**2 * np.sin(theta)) - (m * 9.81 * np.sin(theta) * np.cos(theta))) / ((4/3) * (M + m) - m * np.cos(theta)**2))
 
     # Integración por método numérico para actualizar la velocidad y el ángulo
     theta_dot += theta_ddot * dt
     theta += theta_dot * dt + 0.5 * theta_ddot * dt**2
+    v.append(v[-1] + a * dt)
+
+    x.append(x[-1] + v[-1] * dt + 0.5 * a * dt**2)
 
 # Graficar resultados de la simulación
 plt.figure(figsize=(10, 6))
@@ -169,4 +174,11 @@ plt.ylabel("Fuerza (N)")
 plt.grid()
 
 plt.tight_layout()
+plt.show()
+
+plt.figure(2)
+plt.plot(tiempo, x, label='Posicion carro')
+plt.plot(tiempo, v, label='Velocidad carro')
+plt.grid()
+plt.legend()
 plt.show()
