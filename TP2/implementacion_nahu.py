@@ -11,12 +11,12 @@ M = 1.0      # masa del carro (kg)
 dt = 0.01   # paso de integración (s)
 
 # Condición inicial para simulación
-theta = np.radians(30)   # rad
+theta = np.radians(100)   # rad
 theta_dot = -1.5            # rad/s
 tiempo_simulado = 5      # tiempo de simulación (s)
 
 # Máximos de universo en radianes y rad/s
-angulo_max = np.radians(90)  # rad (90°)
+angulo_max = np.radians(180)  # rad (90°)
 velocidad_max = 20           # rad/s
 fuerza_max = 200            # Newtons
 

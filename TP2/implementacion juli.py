@@ -2,12 +2,13 @@ import numpy as np
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 class Control:
     def __init__(self):
         pos_max = np.pi
-        vel_max = 3
-        f_max = 50
+        vel_max = 20
+        f_max = 100
 
         # Variables linguisticas
         self.posicion = ctrl.Antecedent(np.linspace(-pos_max, pos_max, 10000), 'posicion')
@@ -47,6 +48,8 @@ class Control:
         etiquetas = ['NG', 'NP', 'Z', 'PP', 'PG']
 
         # Matriz de salida (fuerza) como lista de listas (posición x velocidad)
+
+        # Nahu
         matriz_fuerza = [
             ['PG', 'PG', 'PG', 'PP', 'Z'],
             ['PG', 'PG', 'PP', 'Z' , 'Z'],
@@ -54,12 +57,13 @@ class Control:
             ['Z' , 'Z' , 'NP', 'NG', 'NG'],
             ['Z' , 'NP', 'NG', 'NG', 'NG']
         ]
-
         """
+        # Juli
+
         matriz_fuerza = [
             ['PG', 'PG', 'PG', 'PG', 'PP'],
             ['PG', 'PG', 'PG', 'PP', 'PP'],
-            ['PG', 'PP', 'Z', 'NP', 'NG'],
+            ['PG', 'PP', 'Z' , 'NP', 'NG'],
             ['NP', 'NP', 'NP', 'NG', 'NG'],
             ['NP', 'NG', 'NG', 'NG', 'NG']
         ]
@@ -95,8 +99,8 @@ class Control:
 class Carro:
     def __init__(self):
         # Definir posición y velocidad inicial
-        self.posicion = 10 * np.pi / 180
-        self.velocidad = -1.5
+        self.posicion = 180 * np.pi / 180
+        self.velocidad = 0
         self.aceleracion = 0
 
         self.a = 0.0
@@ -143,17 +147,15 @@ class Simulador:
         self.running = True
         self.posiciones = [self.carro.posicion]
         self.velocidades = [self.carro.velocidad]
-        self.tiempo_simulacion = 5
+        self.tiempo_simulacion = 2
 
     def thread_fisico(self):
         self.carro.simular(self.fuerza[-1])
 
     def thread_control(self):
-        posicion = self.carro.posicion
-        self.posiciones.append(posicion)
-        velocidad = self.carro.velocidad
-        self.velocidades.append(velocidad)
-        self.fuerza.append(self.control.calcular(posicion, velocidad))
+        self.posiciones.append(self.carro.posicion)
+        self.velocidades.append(self.carro.velocidad)
+        self.fuerza.append(self.control.calcular(self.carro.posicion, self.carro.velocidad))
 
     def graficar(self):
         t = np.linspace(0, self.tiempo_simulacion, int(self.tiempo_simulacion / self.carro.dt) + 1)
@@ -163,7 +165,6 @@ class Simulador:
         plt.plot(t, self.velocidades, label='Velocidad')
         plt.xlabel("Tiempo [s]")
         plt.ylabel("Valor")
-        plt.title("Evolución del sistema")
         plt.legend()
         plt.grid()
         plt.show()
@@ -172,12 +173,52 @@ class Simulador:
         plt.plot(t, self.carro.posicion_carro, label='Posición carro')
         plt.plot(t, self.carro.velocidad_carro, label='Velocidad carro')
         plt.legend()
+        plt.xlabel("Tiempo [s]")
+        plt.ylabel("Valor")
         plt.grid()
         plt.show()
 
         plt.figure(3)
         plt.plot(t, self.fuerza, label='Fuerza')
         plt.legend()
+        plt.xlabel("Tiempo [s]")
+        plt.ylabel("N")
+        plt.grid()
+        plt.show()
+
+    def animacion(self):
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.set_xlim(min(self.carro.posicion_carro) - 1, max(self.carro.posicion_carro) + 1)
+        ax.set_ylim(-1, 1)
+        ax.set_aspect('equal')
+
+        carro_line, = ax.plot([], [], 'k', lw=4)
+        pendulo_line, = ax.plot([], [], 'o-', lw=2, color='blue')
+
+        def init():
+            carro_line.set_data([], [])
+            pendulo_line.set_data([], [])
+            return carro_line, pendulo_line
+
+        def animate(i):
+            x = self.carro.posicion_carro[i]
+            theta_i = self.posiciones[i] + np.pi
+
+            # Posición del péndulo
+            x_pendulo = x + self.carro.l * np.sin(theta_i)
+            y_pendulo = -self.carro.l * np.cos(theta_i)
+
+            # Dibujo del carro como una línea horizontal
+            carro_line.set_data([x - 0.2, x + 0.2], [0, 0])
+            # Dibujo del péndulo como una línea desde el centro del carro
+            pendulo_line.set_data([x, x_pendulo], [0, y_pendulo])
+
+            return carro_line, pendulo_line
+
+        ani = animation.FuncAnimation(fig, animate, frames=len(self.carro.posicion_carro),
+                                      init_func=init, blit=True, interval=self.carro.dt * 1000)
+
+        plt.title("Animación del Péndulo Invertido")
         plt.grid()
         plt.show()
 
@@ -190,6 +231,7 @@ class Simulador:
         self.running = False
 
         self.graficar()
+        self.animacion()
 
 def debug():
     control = Control()
