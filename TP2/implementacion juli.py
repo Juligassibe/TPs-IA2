@@ -48,7 +48,7 @@ class Control:
         etiquetas = ['NG', 'NP', 'Z', 'PP', 'PG']
 
         # Matriz de salida (fuerza) como lista de listas (posición x velocidad)
-
+        
         # Nahu
         matriz_fuerza = [
             ['PG', 'PG', 'PG', 'PP', 'Z'],
@@ -99,8 +99,8 @@ class Control:
 class Carro:
     def __init__(self):
         # Definir posición y velocidad inicial
-        self.posicion = 180 * np.pi / 180
-        self.velocidad = 0
+        self.posicion = -97 * np.pi / 180
+        self.velocidad = 1.2
         self.aceleracion = 0
 
         self.a = 0.0
@@ -162,7 +162,7 @@ class Simulador:
 
         plt.figure(1)
         plt.plot(t, self.posiciones, label='Posición')
-        plt.plot(t, self.velocidades, label='Velocidad')
+        #plt.plot(t, self.velocidades, label='Velocidad')
         plt.xlabel("Tiempo [s]")
         plt.ylabel("Valor")
         plt.legend()
@@ -187,7 +187,7 @@ class Simulador:
         plt.show()
 
     def animacion(self):
-        fig, ax = plt.subplots(figsize=(10, 10))
+        fig, ax = plt.subplots(figsize=(20, 4))
         ax.set_xlim(min(self.carro.posicion_carro) - 1, max(self.carro.posicion_carro) + 1)
         ax.set_ylim(-1, 1)
         ax.set_aspect('equal')

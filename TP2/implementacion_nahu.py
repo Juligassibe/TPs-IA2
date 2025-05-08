@@ -18,7 +18,7 @@ tiempo_simulado = 5      # tiempo de simulación (s)
 # Máximos de universo en radianes y rad/s
 angulo_max = np.radians(180)  # rad (90°)
 velocidad_max = 20           # rad/s
-fuerza_max = 200            # Newtons
+fuerza_max = 100            # Newtons
 
 # Crear universos para las variables de entrada (ángulo y velocidad) y salida (fuerza)
 angulo = ctrl.Antecedent(np.linspace(-angulo_max, angulo_max, 1001), 'angulo')
