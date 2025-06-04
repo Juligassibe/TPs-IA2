@@ -7,6 +7,7 @@ except ImportError as err:
 
 import os
 import random
+import numpy as np
 from Dinosaur import Dinosaur
 from Cloud import Cloud
 from Bird import Bird
@@ -33,6 +34,7 @@ imageCapture = ImageCapture(screen_spawn_position)
 BG = pygame.image.load(os.path.join("Assets/Other", "Track.png"))
 
 def populate(population_size):
+    """Crea población con diversidad inicial mejorada"""
     population = []
     for i in range(population_size):
         while True:
@@ -43,12 +45,30 @@ def populate(population_size):
             if brightness < 180:  # Evitar colores demasiado claros
                 break
         color = (R, G, B)
-        population.append(Dinosaur(i, color, True))
+        
+        dino = Dinosaur(i, color, True)
+        
+        # MEJORA SILENCIOSA: Agregar diversidad inicial en los pesos (excepto el primero)
+        if i > 0:
+            noise_factor = 0.08  # Diversidad sutil
+            dino.weights_input_hidden1 += np.random.normal(0, noise_factor, 
+                                                          dino.weights_input_hidden1.shape)
+            dino.weights_hidden1_hidden2 += np.random.normal(0, noise_factor, 
+                                                           dino.weights_hidden1_hidden2.shape)
+            dino.weights_hidden2_output += np.random.normal(0, noise_factor, 
+                                                          dino.weights_hidden2_output.shape)
+            
+            # 🚀 DIVERSIDAD: Algunos dinos con sesgo hacia agacharse
+            if i % 5 == 0:  # Cada 15vo dinosaurio
+                dino.weights_hidden2_output[:, 1] += 0.45  # Más probabilidad de agacharse
+        
+        population.append(dino)
+    
     return population
 
-# ======================== SELECT THE POPULATION NUMBER PLAYING AT THE SAME TIME ======================
-population_number = 50
-# =====================================================================================================
+# ======================== MEJORA: POBLACIÓN AUMENTADA ======================
+population_number = 150  
+# ========================================================================
 population = populate(population_number)
 player = Dinosaur(0)
 callUpdateNetwork = False
@@ -66,6 +86,37 @@ def load_genetic_progress():
         except Exception as e:
             print(f"⚠️  Iniciando desde cero: {e}")
 
+def calculate_enhanced_fitness(dino):
+    """Fitness que PROTEGE a los dinos experimentales"""
+    base_score = dino.score
+    
+    # Bonificaciones originales
+    survival_bonus = getattr(dino, 'frames_survived', 0) * 0.05
+    if base_score > 500:
+        score_bonus = (base_score - 500) * 1.2
+    else:
+        score_bonus = 0
+    
+    # 🛡️ PROTECCIÓN CLAVE: Si intentó agacharse, darle una oportunidad
+    duck_protection = 0
+    duck_attempts = getattr(dino, 'duck_attempts', 0)
+    
+    if duck_attempts > 0:
+        # Bonus base por experimentar
+        duck_protection = 100
+        
+        # Bonus extra si sobrevivió un tiempo razonable
+        if dino.score > 50:
+            duck_protection += duck_attempts * 20
+        
+        # Mega bonus si sobrevivió mucho tiempo agachándose
+        if dino.score > 200:
+            duck_protection += 200
+    
+    enhanced = int(base_score + survival_bonus + score_bonus + duck_protection)
+    dino.enhanced_score = enhanced
+    return enhanced
+
 def gameScreen():
     global game_speed, x_pos_bg, y_pos_bg, points, obstacles, population, callUpdateNetwork, generation, bestScore, playMode
     run = True
@@ -78,6 +129,10 @@ def gameScreen():
     font = pygame.font.Font('freesansbold.ttf', 20)
     obstacles = []
     callUpdateNetwork = True
+
+    # Variables para rastrear el último dinosaurio muerto y el obstáculo que lo mató
+    last_dino = None
+    killing_obstacle = None
 
     def score():
         global points, game_speed
@@ -154,12 +209,13 @@ def gameScreen():
                 player.predict()
 
         else:
-            # MODO GENÉTICO MEJORADO
+            # Modo genético
             for dino in population:
+                if not hasattr(dino, 'action_history'):
+                    dino.action_history = []
+                    
                 if dino.alive:
                     dino.draw(SCREEN)
-                    
-                    # ========================== ACTUALIZAR LA FUNCIÓN 'think' CON LOS PARÁMETROS DE ENTRADA DE LA RED ===================
                     
                     # Encontrar el obstáculo más cercano
                     closest_obstacle = None
@@ -173,89 +229,84 @@ def gameScreen():
                         distance_x = obstacle_params.x - dino_params.x
                         
                         # Solo considerar obstáculos que están adelante del dinosaurio
-                        if distance_x > -50 and distance_x < min_distance:  # Expandir rango para pájaros
+                        if distance_x > -50 and distance_x < min_distance:
                             min_distance = distance_x
                             closest_obstacle = obstacle
                     
-                    # Si hay un obstáculo cercano, usarlo para la decisión
+                    # Determinar estado actual del dinosaurio
+                    current_state = "RUN"
+                    if dino.dino_jump:
+                        current_state = "JUMP"
+                    elif dino.dino_duck:
+                        current_state = "DUCK"
+                    
+                    # Llamar a think() con obstacle_type = 0 siempre
                     if closest_obstacle:
                         obstacle_params = closest_obstacle.rect
                         dino_params = dino.dino_rect
-                        
-                        distance_x = obstacle_params.x - dino_params.x  # Distancia horizontal
-                        distance_y = obstacle_params.y - dino_params.y  # Distancia vertical
-                        
-                        # Determinar tipo de obstáculo para mejor decisión
-                        obstacle_type = 0  # Por defecto cactus pequeño
-                        if hasattr(closest_obstacle, '__class__'):
-                            class_name = str(closest_obstacle.__class__)
-                            if 'SmallCactus' in class_name:
-                                obstacle_type = 0  # Cactus pequeño -> JUMP
-                            elif 'LargeCactus' in class_name:
-                                obstacle_type = 1  # Cactus grande -> JUMP más temprano
-                            elif 'Bird' in class_name:
-                                obstacle_type = 2  # Pájaro -> DUCK y mantener
-                        
-                        # Determinar estado actual del dinosaurio
-                        current_state = "RUN"
-                        if dino.dino_jump:
-                            current_state = "JUMP"
-                        elif dino.dino_duck:
-                            current_state = "DUCK"
-                        
-                        # Pasar parámetros mejorados a la función think de la red neuronal
-                        action = dino.think(distance_x, distance_y, game_speed, dino_params.y, obstacle_type, current_state)
+                        distance_x = obstacle_params.x - dino_params.x
+                        distance_y = obstacle_params.y - dino_params.y
+                        action = dino.think(distance_x, distance_y, game_speed, dino.dino_rect.y, current_state)
                     else:
-                        # Si no hay obstáculos cercanos, continuar corriendo
-                        action = dino.think(800, 0, game_speed, dino.dino_rect.y, 0, "RUN")
+                        action = dino.think(800, 0, game_speed, dino.dino_rect.y, "RUN")
                     
-                    # Actualizar el dinosaurio con la acción decidida por la red
+                    # Registrar acción para análisis posterior
+                    if len(dino.action_history) < 1000:
+                        dino.action_history.append(action)
+                    
+                    # Actualizar el dinosaurio
                     dino.update(action)
-                    # ====================================================================================================================
 
+        # Generar nuevos obstáculos
         if len(obstacles) == 0:
-            if random.randint(0, 2) == 0:
+            obstacle_type = random.randint(0, 2)
+            if obstacle_type == 0:
                 obstacles.append(SmallCactus(SCREEN_WIDTH, game_speed, obstacles))
-            elif random.randint(0, 2) == 1:
+            elif obstacle_type == 1:
                 obstacles.append(LargeCactus(SCREEN_WIDTH, game_speed, obstacles))
-            elif random.randint(0, 2) == 2:
+            else:
                 obstacles.append(Bird(SCREEN_WIDTH, game_speed, obstacles))
-        
+
+        # Variables para rastrear colisiones
+        player_killing_obstacle = None
+        last_dino = None
+        killing_obstacle = None
 
         for obstacle in obstacles:
             obstacle.draw(SCREEN)
             obstacle.update()
             obstacle_params = obstacle.rect
 
-            if playMode == 'm' or playMode == 'c' or playMode == 'a':
-                if player.dino_rect.colliderect(obstacle_params):
+            # Detectar colisiones para el jugador
+            if playMode in ['m', 'c', 'a']:
+                if player.alive and player.dino_rect.colliderect(obstacle_params):
                     player.alive = False
-                    
+                    player_killing_obstacle = obstacle
+            
+            # Detectar colisiones para la población
             else:
                 for dino in population:
-                    dino_params = dino.dino_rect
-                    if dino.alive and dino_params.colliderect(obstacle_params):
+                    if dino.alive and dino.dino_rect.colliderect(obstacle_params):
                         dino.score = points
                         dino.alive = False
+                        last_dino = dino
+                        killing_obstacle = obstacle
 
-                        if (count_alive(population) == 0):
-                            last_dino = dino
+        # Manejar muerte del jugador
+        if playMode in ['m', 'c', 'a'] and not player.alive and player_killing_obstacle:
+            deathUpdates(player, player_killing_obstacle)
+        
+        # Manejar extinción de la población
+        elif playMode not in ['m', 'c', 'a'] and count_alive(population) == 0 and last_dino and killing_obstacle:
+            deathUpdates(last_dino, killing_obstacle)
 
-        if ((playMode == 'm' or playMode == 'c' or playMode == 'a') and player.alive == False):
-            deathUpdates(player, obstacle)
-        elif (playMode != 'm' and playMode != 'c' and playMode != 'a' and count_alive(population) == 0):
-            countSurviving()
-            currentGeneration()
-            deathUpdates(last_dino, obstacle)
-
+        # Actualizar gráficos
         background()
-
         cloud.draw(SCREEN)
         cloud.update()
-
         score()
 
-        if (playMode != 'm' and playMode != 'c' and playMode != 'a'):
+        if playMode not in ['m', 'c', 'a']:
             countSurviving()
             currentGeneration()
 
@@ -268,16 +319,23 @@ def menu():
 
     if playMode == 'm' or playMode == 'c' or playMode == 'a':
         player.resetStatus()
-    elif playMode != 'm' and playMode != 'c' and playMode != 'a' and callUpdateNetwork:
-        updateNetwork(population, generation)  # Usar versión mejorada con parámetro generation
+    elif playMode not in ['m', 'c', 'a'] and callUpdateNetwork:
+        # Actualizar red neuronal con la generación actual
+        updateNetwork(population, generation)
         callUpdateNetwork = False
+        
+        # Resetear dinosaurios para nueva generación
         for dino in population:
             dino.resetStatus()
+            dino.frames_survived = 0
+            dino.duck_attempts = 0
+            dino.action_history = []  # Limpiar historial de acciones
         
     while run:
         SCREEN.fill((255, 255, 255))
         font = pygame.font.Font('freesansbold.ttf', 30)
 
+        # Interfaz del menú
         if generation == 1:
             text = font.render("Pulse 'm' para jugar manualmente", True, (0, 0, 0))
 
@@ -295,6 +353,7 @@ def menu():
             auxTextRect = auxText.get_rect()
             auxTextRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 150)
             SCREEN.blit(auxText, auxTextRect)
+            
         elif generation > 1:
             text = font.render("Pulse cualquier tecla para reiniciar", True, (0, 0, 0))
             score = font.render("Mejor puntuación: " + str(bestScore), True, (0, 0, 0))
@@ -302,32 +361,33 @@ def menu():
             scoreRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50)
             SCREEN.blit(score, scoreRect)
 
-
         textRect = text.get_rect()
-
         textRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
         SCREEN.blit(text, textRect)
         pygame.display.update()
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-            if event.type == pygame.KEYDOWN:
+            if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                 if generation == 1:
-                    playMode = pygame.key.name(event.key)
+                    # Primera vez - elegir modo
+                    if event.type == pygame.KEYDOWN:
+                        playMode = pygame.key.name(event.key)
+                    else:  # Click de ratón - modo genético por defecto
+                        playMode = "genetic"
 
-                    if playMode == 'm' or playMode == 'c' or playMode == 'a':
+                    if playMode in ['m', 'c', 'a']:
                         population = []
                     else:
-                        # Solo cargar progreso si es modo genético
+                        # Cargar progreso genético si existe
                         load_genetic_progress()
+                
                 gameScreen()
 
 def count_alive(population):
-    alive = 0
-    for dino in population:
-        if dino.alive:
-            alive += 1
-    return alive
+    """Función optimizada para contar dinosaurios vivos"""
+    return sum(1 for dino in population if dino.alive)
 
 if __name__ == "__main__":
     menu()
