@@ -1,15 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split #Para dividir datos, normalizar y calcular métricas
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, r2_score
-import seaborn as sns
+import seaborn as sns #Para mejorar el estilo de gráficos
 import random
 import warnings
 warnings.filterwarnings('ignore')
 
-# Configurar estilo de gráficos
+# Configurar estilo de gráficos, Configura el estilo visual de los gráficos para que se vean mejor.
 plt.style.use('seaborn-v0_8')
 sns.set_palette("husl")
 
@@ -20,7 +19,7 @@ class RedNeuronalMulticapa:
     
     def __init__(self, arquitectura, tasa_aprendizaje=0.01):
         """Inicializar la red neuronal"""
-        self.arquitectura = arquitectura
+        self.arquitectura = arquitectura #Inicializa la red neuronal con una arquitectura específica. Por ejemplo, [1, 10, 5, 1] significa: 1 neurona de entrada, una capa oculta con 10 neuronas, otra con 5, y 1 neurona de salida.
         self.tasa_aprendizaje = tasa_aprendizaje
         self.num_capas = len(arquitectura) - 1
         
@@ -29,7 +28,7 @@ class RedNeuronalMulticapa:
         self.sesgos = {}
         
         # Inicialización Xavier/Glorot para mejor convergencia
-        for i in range(self.num_capas):
+        for i in range(self.num_capas): #Crea los pesos (conexiones) entre neuronas usando la inicialización Xavier, que ayuda a que la red aprenda mejor. Los sesgos se inicializan en cero.
             self.pesos[f'W{i+1}'] = np.random.randn(arquitectura[i], arquitectura[i+1]) * np.sqrt(2.0 / arquitectura[i])
             self.sesgos[f'b{i+1}'] = np.zeros((1, arquitectura[i+1]))
         
@@ -288,7 +287,7 @@ class AlgoritmoGenetico:
     
     def evolucionar(self, X_train, y_train, X_val, y_val):
         """Proceso principal del algoritmo genético"""
-        print("\n🧬 INICIANDO ALGORITMO GENÉTICO")
+        print("\n INICIANDO ALGORITMO GENÉTICO")
         print("=" * 50)
         print(f"Población: {self.poblacion_size} individuos")
         print(f"Generaciones: {self.generaciones}")
@@ -300,7 +299,7 @@ class AlgoritmoGenetico:
         poblacion = self.crear_poblacion_inicial()
         
         for generacion in range(self.generaciones):
-            print(f"\n🔄 Generación {generacion + 1}/{self.generaciones}")
+            print(f"\n Generación {generacion + 1}/{self.generaciones}")
             
             # Evaluar fitness de toda la población
             fitness_scores = []
@@ -320,8 +319,8 @@ class AlgoritmoGenetico:
             
             self.historial_fitness.append(mejor_fitness_gen)
             
-            print(f"  🏆 Mejor de la generación: Fitness = {mejor_fitness_gen:.4f}")
-            print(f"  🥇 Mejor global: Fitness = {self.mejor_fitness:.4f}")
+            print(f"   Mejor de la generación: Fitness = {mejor_fitness_gen:.4f}")
+            print(f"   Mejor global: Fitness = {self.mejor_fitness:.4f}")
             
             # Si no es la última generación, crear nueva población
             if generacion < self.generaciones - 1:
@@ -343,8 +342,8 @@ class AlgoritmoGenetico:
                 # Elitismo: mantener el mejor individuo
                 poblacion[0] = self.mejor_individuo.copy()
         
-        print(f"\n✅ ALGORITMO GENÉTICO COMPLETADO")
-        print(f"🏆 MEJOR CONFIGURACIÓN ENCONTRADA:")
+        print(f"\n ALGORITMO GENÉTICO COMPLETADO")
+        print(f" MEJOR CONFIGURACIÓN ENCONTRADA:")
         arquitectura, tasa_lr = self.cromosoma_a_arquitectura(self.mejor_individuo)
         print(f"   Arquitectura: {arquitectura}")
         print(f"   Tasa de aprendizaje: {tasa_lr}")
@@ -355,7 +354,7 @@ class AlgoritmoGenetico:
 
 def cargar_datos(nombre_archivo='puntos.txt'):
     """Cargar datos desde archivo"""
-    print(f"📂 Cargando datos desde {nombre_archivo}...")
+    print(f" Cargando datos desde {nombre_archivo}...")
     
     try:
         datos = []
@@ -369,17 +368,17 @@ def cargar_datos(nombre_archivo='puntos.txt'):
         X = datos[:, 0].reshape(-1, 1)
         y = datos[:, 1].reshape(-1, 1)
         
-        print(f"✅ Datos cargados: {len(datos)} puntos")
+        print(f"   Datos cargados: {len(datos)} puntos")
         print(f"   Rango X: [{X.min():.2f}, {X.max():.2f}]")
         print(f"   Rango Y: [{y.min():.2f}, {y.max():.2f}]")
         
         return X, y
         
     except FileNotFoundError:
-        print(f"❌ Error: No se encontró el archivo '{nombre_archivo}'")
+        print(f" Error: No se encontró el archivo '{nombre_archivo}'")
         return None, None
     except Exception as e:
-        print(f"❌ Error cargando datos: {e}")
+        print(f" Error cargando datos: {e}")
         return None, None
 
 
@@ -448,7 +447,7 @@ def visualizar_resultados_finales(X, y, y_pred, metricas, arquitectura):
 def main():
     """Función principal"""
     print("=" * 70)
-    print("🧬 OPTIMIZACIÓN DE RED NEURONAL CON ALGORITMOS GENÉTICOS")
+    print(" OPTIMIZACIÓN DE RED NEURONAL CON ALGORITMOS GENÉTICOS")
     print("=" * 70)
     
     # 1. Cargar datos
@@ -460,7 +459,7 @@ def main():
     X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=0.25, random_state=42)
     
-    print(f"\n🔄 División de datos:")
+    print(f"\n División de datos:")
     print(f"   Entrenamiento: {len(X_train)} muestras")
     print(f"   Validación: {len(X_val)} muestras")
     print(f"   Prueba: {len(X_test)} muestras")
@@ -477,7 +476,7 @@ def main():
     y_val_scaled = scaler_y.transform(y_val)
     y_test_scaled = scaler_y.transform(y_test)
     
-    print("✅ Datos normalizados")
+    print(" Datos normalizados")
     
     # 4. Configurar y ejecutar algoritmo genético
     ag = AlgoritmoGenetico(
@@ -494,11 +493,11 @@ def main():
     mejor_cromosoma = ag.evolucionar(X_train_scaled, y_train_scaled, X_val_scaled, y_val_scaled)
     
     # 5. Visualizar evolución del AG
-    print(f"\n📊 Visualizando evolución del algoritmo genético...")
+    print(f"\n Visualizando evolución del algoritmo genético...")
     visualizar_evolucion_ag(ag.historial_fitness)
     
     # 6. Entrenar modelo final con mejor configuración
-    print(f"\n🏋️ Entrenando modelo final con mejor configuración...")
+    print(f"\n Entrenando modelo final con mejor configuración...")
     arquitectura_final, tasa_lr_final = ag.cromosoma_a_arquitectura(mejor_cromosoma)
     
     modelo_final = RedNeuronalMulticapa(arquitectura_final, tasa_lr_final)
@@ -515,19 +514,19 @@ def main():
     
     metricas_finales = {'MSE': mse_final, 'RMSE': rmse_final, 'R²': r2_final}
     
-    print(f"\n📊 RESULTADOS FINALES:")
+    print(f"\n RESULTADOS FINALES:")
     print(f"   Arquitectura optimizada: {arquitectura_final}")
     print(f"   Tasa de aprendizaje: {tasa_lr_final}")
-    print(f"   📈 Métricas en conjunto de prueba:")
+    print(f"    Métricas en conjunto de prueba:")
     for metrica, valor in metricas_finales.items():
         print(f"      {metrica}: {valor:.6f}")
     
     # 8. Visualizar resultados finales
-    print(f"\n📊 Generando visualizaciones finales...")
+    print(f"\n Generando visualizaciones finales...")
     visualizar_resultados_finales(X_test, y_test, y_pred_test, metricas_finales, arquitectura_final)
     
     # 9. Análisis de resultados
-    print(f"\n🎭 ANÁLISIS DE RESULTADOS:")
+    print(f"\n ANÁLISIS DE RESULTADOS:")
     print(f"   • R² = {metricas_finales['R²']:.4f}: ", end="")
     if metricas_finales['R²'] > 0.8:
         print("¡Excelente ajuste!")
@@ -541,7 +540,7 @@ def main():
     print(f"   • RMSE = {metricas_finales['RMSE']:.4f}: Error promedio")
     print(f"   • El algoritmo genético encontró una arquitectura optimizada automáticamente")
     
-    print(f"\n🎉 ¡Optimización completada exitosamente!")
+    print(f"\n ¡Optimización completada exitosamente!")
 
 
 if __name__ == "__main__":
